@@ -95,6 +95,20 @@ extension SFSymbolsGenerator {
         )
         var isUseBeta: Bool = false
 
+        /// Whether to use the private version of SF Symbols from the system framework.
+        ///
+        /// When enabled, the tool will look for the internal SFSymbols framework instead of
+        /// the stable "SF Symbols.app". This allows access to symbols that are
+        /// not meant for public use.
+        ///
+        /// Overwrites --use-beta
+        /// - Default: `false`
+        @Flag(
+            name: [.customLong("use-private")],
+            help: "Whether use private version of SF Symbols or not."
+        )
+        var isUsePrivate: Bool = false
+
         /// Executes the SF Symbols enumeration generation process.
         ///
         /// This method orchestrates the entire generation workflow:
@@ -106,7 +120,7 @@ extension SFSymbolsGenerator {
         /// - Throws: `SFSymbolsError` if any step in the process fails
         mutating func run() async throws {
             do {
-                let plistURL = try SFSymbolsFinder.find(isBeta: isUseBeta)
+                let plistURL = try SFSymbolsFinder.find(isBeta: isUseBeta, isPrivate: isUsePrivate)
                 let (symbols, releases) = try await PlistParser.parse(from: plistURL)
                 let content = CodeGenerator.generate(
                     from: symbols, releases: releases, enumName: enumName)

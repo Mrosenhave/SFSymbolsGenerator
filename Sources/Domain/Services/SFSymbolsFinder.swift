@@ -62,29 +62,41 @@ struct SFSymbolsFinder {
     /// let betaPlistURL = try SFSymbolsFinder.find(isBeta: true)
     /// ```
     ///
-    static func find(isBeta: Bool) throws -> URL {
+    static func find(isBeta: Bool, isPrivate: Bool) throws -> URL {
         let fileManager = FileManager.default
-        let appName = isBeta ? "SF Symbols beta.app" : "SF Symbols.app"
-        let applicationsDirectories = fileManager.urls(
-            for: .applicationDirectory,
-            in: .allDomainsMask
-        )
-
-        for directory in applicationsDirectories {
-            let appURL = directory.appendingPathComponent(appName)
-            if fileManager.fileExists(atPath: appURL.path) {
-                let plistURL = appURL.appendingPathComponent(
-                    "Contents/Resources/Metadata/name_availability.plist")
-                if fileManager.fileExists(atPath: plistURL.path) {
-                    return plistURL
-                } else {
-                    throw SFSymbolsError.applicationDependency(
-                        .metadataFileNotFound(path: plistURL.path)
-                    )
+        
+        if !isPrivate {
+            let appName = isBeta ? "SF Symbols beta.app" : "SF Symbols.app"
+            let applicationsDirectories = fileManager.urls(
+                for: .applicationDirectory,
+                in: .allDomainsMask
+            )
+            
+            for directory in applicationsDirectories {
+                let appURL = directory.appendingPathComponent(appName)
+                if fileManager.fileExists(atPath: appURL.path) {
+                    let plistURL = appURL.appendingPathComponent(
+                        "Contents/Resources/Metadata/name_availability.plist")
+                    if fileManager.fileExists(atPath: plistURL.path) {
+                        return plistURL
+                    } else {
+                        throw SFSymbolsError.applicationDependency(
+                            .metadataFileNotFound(path: plistURL.path)
+                        )
+                    }
                 }
             }
+        } else {
+            let path = "/System/Library/PrivateFrameworks/SFSymbols.framework/Versions/Current/Resources/CoreGlyphsPrivate.bundle/Contents/Resources/name_availability.plist"
+            if fileManager.fileExists(atPath: path) {
+                return URL(fileURLWithPath: path)
+            } else {
+                throw SFSymbolsError.applicationDependency(
+                    .metadataFileNotFound(path: path)
+                )
+            }
         }
-
+        
         if isBeta {
             throw SFSymbolsError.applicationDependency(.sfSymbolsBetaNotInstalled)
         } else {
